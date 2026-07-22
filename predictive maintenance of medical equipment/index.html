@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance Command Center - Medical Equipment</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js CDN for live graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>MedMaint AI</h1>
+                <span>Predictive Engine</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-view="dashboard-view">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="9" rx="1" />
+                    <rect x="14" y="3" width="7" height="5" rx="1" />
+                    <rect x="14" y="12" width="7" height="9" rx="1" />
+                    <rect x="3" y="16" width="7" height="5" rx="1" />
+                </svg>
+                Fleet Dashboard
+            </div>
+            <div class="nav-item" data-view="monitor-view" id="nav-monitor">
+                <svg viewBox="0 0 24 24">
+                    <path d="M2 12h20M12 2v20" stroke-linecap="round"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                Device Monitor
+            </div>
+            <div class="nav-item" data-view="simulator-view">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+                </svg>
+                Simulation Lab
+            </div>
+            <div class="nav-item" data-view="explainer-view">
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                ML Model Sandbox
+            </div>
+            <div class="nav-item" data-view="maintenance-view">
+                <svg viewBox="0 0 24 24">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Maintenance Log
+            </div>
+            <div class="nav-item" data-view="diagnostics-view" id="nav-diagnostics">
+                <svg viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="16" y1="13" x2="8" y2="13" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="16" y1="17" x2="8" y2="17" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="10 9 9 9 8 9" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Equipment Diagnostics
+            </div>
+        </nav>
+
+        <div class="sim-indicator-card">
+            <div class="sim-indicator-title">Simulation Clock</div>
+            <div class="sim-indicator-status">
+                <div class="pulse-dot" id="global-pulse"></div>
+                <span id="clock-speed-text">1x Speed (Realtime)</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="app-main">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-title">
+                <h2 id="view-title">Fleet Dashboard</h2>
+            </div>
+            <div class="header-metrics">
+                <div class="metric-pill healthy">
+                    <span class="dot"></span>
+                    <span id="metric-healthy">4</span> Healthy
+                </div>
+                <div class="metric-pill warning">
+                    <span class="dot"></span>
+                    <span id="metric-warning">0</span> Warning
+                </div>
+                <div class="metric-pill critical">
+                    <span class="dot"></span>
+                    <span id="metric-critical">0</span> Critical
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <section id="dashboard-view" class="content-panel active">
+            <!-- Summary row -->
+            <div class="grid-3">
+                <div class="glass-panel dashboard-card">
+                    <div class="card-title">Fleet Health Index</div>
+                    <div class="card-value" id="fleet-health-avg">100%</div>
+                    <div class="card-subtext">Average health across 4 active units</div>
+                </div>
+                <div class="glass-panel dashboard-card">
+                    <div class="card-title">Next Scheduled Service</div>
+                    <div class="card-value" id="next-service-countdown">12d</div>
+                    <div class="card-subtext">MRI-001 Routine maintenance check</div>
+                </div>
+                <div class="glass-panel dashboard-card">
+                    <div class="card-title">Active Fleet Alerts</div>
+                    <div class="card-value" id="active-alert-count">0</div>
+                    <div class="card-subtext">Anomalies requiring engineering review</div>
+                </div>
+            </div>
+
+            <!-- Main dashboard layout -->
+            <div class="grid-1-2">
+                <!-- Alerts list -->
+                <div class="glass-panel dashboard-card" style="height: 480px; display: flex; flex-direction: column;">
+                    <div class="card-title">Live Alert Feed</div>
+                    <div class="alert-feed-list" id="dashboard-alert-feed">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🛡️</div>
+                            <p>All systems functioning normally. No active anomalies detected.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device overview list -->
+                <div class="glass-panel dashboard-card" style="height: 480px; display: flex; flex-direction: column;">
+                    <div class="card-title">
+                        <span>Equipment Fleet Overview</span>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" id="btn-export-csv">Export Fleet Dataset (CSV)</button>
+                    </div>
+                    <div class="device-table-container">
+                        <table class="device-table">
+                            <thead>
+                                <tr>
+                                    <th>Device ID</th>
+                                    <th>Equipment Name</th>
+                                    <th>Health</th>
+                                    <th>Anomaly Score</th>
+                                    <th>Est. RUL</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fleet-table-body">
+                                <!-- Generated Dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DEVICE MONITOR VIEW -->
+        <section id="monitor-view" class="content-panel">
+            <div class="device-select-bar">
+                <select class="select-dropdown" id="monitor-device-select">
+                    <option value="MRI-001">MRI-001 - MRI Scanner (High-Field 3T)</option>
+                    <option value="VENT-002">VENT-002 - ICU Ventilator (Turbine)</option>
+                    <option value="INF-003">INF-003 - Syringe Infusion Pump</option>
+                    <option value="CT-004">CT-004 - CT Rotary Gantry & Tube</option>
+                </select>
+                <button class="btn btn-primary" id="btn-monitor-perform-maint">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                    Schedule Instant Maintenance
+                </button>
+            </div>
+
+            <!-- Device specs & key indicators -->
+            <div class="glass-panel dashboard-card">
+                <div class="device-detail-header">
+                    <div class="device-title-info">
+                        <h3 id="det-device-name">MRI Scanner (High-Field 3T)</h3>
+                        <div class="device-meta-info">
+                            <span>ID: <strong id="det-device-id">MRI-001</strong></span>
+                            <span>Installed: <span id="det-install-date">2024-03-12</span></span>
+                            <span>Lifetime Lifespan: <span id="det-expected-life">10 years</span></span>
+                        </div>
+                    </div>
+                    <span class="status-badge normal" id="det-device-status-badge">Normal</span>
+                </div>
+
+                <div class="device-quick-stats" style="margin-top: 24px;">
+                    <div class="glass-panel quick-stat-card" style="background: rgba(255, 255, 255, 0.01);">
+                        <div class="quick-stat-label">Device Health</div>
+                        <div class="health-ring-container">
+                            <svg class="health-ring-svg" width="130" height="130">
+                                <circle class="health-ring-bg" cx="65" cy="65" r="60"/>
+                                <circle class="health-ring-fill" id="det-health-ring" cx="65" cy="65" r="60"/>
+                            </svg>
+                            <div class="health-ring-text">
+                                <span class="health-ring-val" id="det-health-val">100%</span>
+                                <div class="health-ring-lbl">Index</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-panel quick-stat-card" style="background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; justify-content: center;">
+                        <div class="quick-stat-label">Anomaly Distance (Z-Score)</div>
+                        <div class="quick-stat-val" id="det-anomaly-score">0.45</div>
+                        <div class="card-subtext" style="margin-top: 8px;">Threshold: <span id="det-warn-thresh">2.0</span> (Warning)</div>
+                    </div>
+                    <div class="glass-panel quick-stat-card" style="background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; justify-content: center;">
+                        <div class="quick-stat-label">Remaining Useful Life (Est. RUL)</div>
+                        <div class="quick-stat-val" id="det-rul" style="color: var(--color-cyan);">8.2 months</div>
+                        <div class="card-subtext" style="margin-top: 8px;">Confidence: <span id="det-rul-confidence">95%</span></div>
+                    </div>
+                    <div class="glass-panel quick-stat-card" style="background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: column; justify-content: center;">
+                        <div class="quick-stat-label">Total Running Hours</div>
+                        <div class="quick-stat-val" id="det-accum-hours">12,450h</div>
+                        <div class="card-subtext" style="margin-top: 8px;">Accumulated stress hours</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telemetry live scrolling graphs -->
+            <div class="telemetry-charts-grid">
+                <div class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title" id="lbl-sensor-0">Cryogen Temp</span>
+                        <span class="chart-current-val" id="val-sensor-0">4.20 K</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chart-sensor-0"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title" id="lbl-sensor-1">Coolant Pressure</span>
+                        <span class="chart-current-val" id="val-sensor-1">55.0 PSI</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chart-sensor-1"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title" id="lbl-sensor-2">Compressor Vibration</span>
+                        <span class="chart-current-val" id="val-sensor-2">1.10 mm/s</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chart-sensor-2"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title" id="lbl-sensor-3">Power Draw</span>
+                        <span class="chart-current-val" id="val-sensor-3">22.0 kW</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="chart-sensor-3"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SIMULATION LAB VIEW -->
+        <section id="simulator-view" class="content-panel">
+            <div class="grid-1-2">
+                <!-- Controls Card -->
+                <div class="glass-panel dashboard-card sim-controls-panel">
+                    <div class="card-title">Simulation Environment Setup</div>
+                    
+                    <div class="slider-group">
+                        <label class="slider-label">
+                            <span>Select Device to Target</span>
+                        </label>
+                        <select class="select-dropdown" id="sim-device-select" style="width: 100%;">
+                            <option value="MRI-001">MRI-001 - MRI Scanner (High-Field 3T)</option>
+                            <option value="VENT-002">VENT-002 - ICU Ventilator (Turbine)</option>
+                            <option value="INF-003">INF-003 - Syringe Infusion Pump</option>
+                            <option value="CT-004">CT-004 - CT Rotary Gantry & Tube</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="slider-label" style="margin-bottom: 8px;">
+                            <span>Simulation Speed (Aging Dilation)</span>
+                        </div>
+                        <div class="sim-speed-selector">
+                            <button class="speed-btn active" data-speed="1">1x (Realtime)</button>
+                            <button class="speed-btn" data-speed="5">5x Speed</button>
+                            <button class="speed-btn" data-speed="24">24x Speed (1 hr/s)</button>
+                            <button class="speed-btn" data-speed="168">168x Speed (7 days/min)</button>
+                        </div>
+                        <div class="card-subtext">Higher speed dilates time so you can watch devices age and anomalies degrade them over simulated days.</div>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <div class="card-title" style="margin-bottom: 12px; font-size: 0.95rem;">Inject Specific Failures</div>
+                        <div class="anomaly-grid" id="sim-anomaly-triggers">
+                            <!-- Populated based on selection -->
+                        </div>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <button class="btn btn-secondary" style="width: 100%; justify-content: center;" id="btn-reset-simulation">
+                            Reset All Devices to Factory Condition
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Simulation Output Diagnostic Console -->
+                <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; height: 530px;">
+                    <div class="card-title">Realtime Simulation Diagnostic Output</div>
+                    <div style="flex-grow: 1; background: rgba(0, 0, 0, 0.4); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px; font-family: var(--font-mono); font-size: 0.8rem; overflow-y: auto; color: #a4b1cd; line-height: 1.5;" id="sim-console">
+                        [SYSTEM] Simulation Engine initialized at 1x Speed.<br>
+                        [SYSTEM] Seeded baseline telemetry datasets for 4 active devices.<br>
+                        [SYSTEM] Predictive model running background monitoring cycles.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ML ENGINE SANDBOX VIEW -->
+        <section id="explainer-view" class="content-panel">
+            <div class="grid-1-2">
+                <!-- Interactive Parameter Tweak Card -->
+                <div class="glass-panel dashboard-card">
+                    <div class="card-title">ML Detector Configurations</div>
+                    
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Anomaly Warning Threshold (Z-Score)</span>
+                            <span id="lbl-warn-thresh">2.0</span>
+                        </div>
+                        <input type="range" min="1.0" max="3.5" step="0.1" value="2.0" class="slider-input" id="slider-warn-thresh">
+                        <div class="card-subtext" style="margin-top: 4px;">Lowering this values triggers warning alerts earlier but increases false alarms.</div>
+                    </div>
+
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Critical/Failure Threshold (Z-Score)</span>
+                            <span id="lbl-crit-thresh">4.0</span>
+                        </div>
+                        <input type="range" min="3.0" max="6.0" step="0.1" value="4.0" class="slider-input" id="slider-crit-thresh">
+                        <div class="card-subtext" style="margin-top: 4px;">Z-Score threshold representing catastrophic damage and requiring emergency shutdown.</div>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <div class="card-title" style="margin-bottom: 12px; font-size: 0.95rem;">Model Inputs Feature Weights</div>
+                        <div id="explainer-sensor-contributions">
+                            <!-- Populated with sensor contribution bars -->
+                            <div class="empty-state" style="padding: 10px;">Select a device in the monitor to see dynamic feature contributions.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mathematical equations explainer card -->
+                <div class="glass-panel dashboard-card">
+                    <div class="card-title">Mathematical Formula Sandbox</div>
+                    
+                    <div class="equation-box">
+                        <div class="card-title" style="margin-bottom: 8px; font-size: 0.9rem; color: #fff;">1. Multivariate Anomaly Score (Z-Distance)</div>
+                        <p class="card-subtext">Computes deviations from standard baseline parameters, acting as a lightweight Mahalanobis distance without covariance cross-terms:</p>
+                        <div class="math-eq">D(x) = √ [ 1/N * Σ ( (x_i - μ_i) / σ_i )² ]</div>
+                        <div class="equation-vars">
+                            Where:<br>
+                            - <span>x_i</span> is the active sensor reading.<br>
+                            - <span>μ_i</span> is the baseline normal sensor mean.<br>
+                            - <span>σ_i</span> is the sensor standard deviation.<br>
+                            - <span>N</span> is the count of sensors.
+                        </div>
+                    </div>
+
+                    <div class="equation-box">
+                        <div class="card-title" style="margin-bottom: 8px; font-size: 0.9rem; color: #fff;">2. Remaining Useful Life (RUL) Curve Fitting</div>
+                        <p class="card-subtext">Predicts critical decay progression using exponential degradation curves fit on sensor drift velocities:</p>
+                        <div class="math-eq">Health(t) = H_0 * e^-αt</div>
+                        <div class="equation-vars">
+                            Where:<br>
+                            - <span>H_0</span> is the starting baseline health index (100%).<br>
+                            - <span>α</span> is the calculated degradation coefficient (calculated dynamically from rolling window regression on sensor deviation changes).<br>
+                            - <span>t</span> is the simulated time.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAINTENANCE LOG VIEW -->
+        <section id="maintenance-view" class="content-panel">
+            <div class="grid-1-2">
+                <!-- Actionable Recommendations Card -->
+                <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; min-height: 400px;">
+                    <div class="card-title">Active Service Tickets & Work Orders</div>
+                    <div class="alert-feed-list" id="maintenance-active-tickets" style="max-height: 480px;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>No active service tickets. All machines are healthy.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historical maintenance logs -->
+                <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; min-height: 400px;">
+                    <div class="card-title">Completed Maintenance History Logs</div>
+                    <div style="flex-grow: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);">
+                        <table class="device-table" style="font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Device</th>
+                                    <th>Service Performed</th>
+                                    <th>Status</th>
+                                    <th>Technician</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintenance-history-body">
+                                <tr>
+                                    <td>2026-06-15 08:30</td>
+                                    <td>MRI-001</td>
+                                    <td>Routine Cryogen Coolant Refill & Magnet Sweep</td>
+                                    <td><span class="status-badge normal">Completed</span></td>
+                                    <td>Dr. R. Chen (Clinical Eng)</td>
+                                </tr>
+                                <tr>
+                                    <td>2026-05-12 14:15</td>
+                                    <td>VENT-002</td>
+                                    <td>Oxygen Valve Replacement (Pre-emptive)</td>
+                                    <td><span class="status-badge normal">Completed</span></td>
+                                    <td>A. Peterson (MedTech Corp)</td>
+                                </tr>
+                                <tr>
+                                    <td>2026-03-08 10:00</td>
+                                    <td>CT-004</td>
+                                    <td>Rotary Gantry Re-balancing & Bearing Lube</td>
+                                    <td><span class="status-badge normal">Completed</span></td>
+                                    <td>S. Varma (CT Specialist)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- EQUIPMENT DIAGNOSTICS & PREDICTIVE MAINTENANCE VIEW -->
+        <section id="diagnostics-view" class="content-panel">
+            <!-- Search & Control Panel -->
+            <div class="glass-panel dashboard-card">
+                <div class="card-title">Select or Search Equipment for Diagnostics</div>
+                <div class="search-inputs-container">
+                    <div class="input-field-wrapper">
+                        <label class="slider-label" style="margin-bottom: 8px;">Search / Type Equipment Name</label>
+                        <div class="search-box-wrapper">
+                            <input type="text" id="diag-search-input" class="select-dropdown" style="width: 100%;" placeholder="e.g. MRI Machine, ICU Ventilator, ECG..." autocomplete="off">
+                            <div class="search-suggestions" id="diag-search-suggestions"></div>
+                        </div>
+                    </div>
+                    <div class="input-field-wrapper">
+                        <label class="slider-label" style="margin-bottom: 8px;">Or Select from Predefined Database</label>
+                        <select class="select-dropdown" id="diag-select-dropdown" style="width: 100%;">
+                            <option value="">-- Choose Equipment --</option>
+                            <option value="MRI Machine">MRI Scanner (Magnetic Resonance Imaging)</option>
+                            <option value="CT Scanner">CT Scanner (Computed Tomography)</option>
+                            <option value="X-Ray Machine">X-Ray Machine (Radiography)</option>
+                            <option value="ECG Machine">ECG Machine (Electrocardiograph)</option>
+                            <option value="ICU Ventilator">ICU Ventilator (Respirator)</option>
+                            <option value="Ultrasound Machine">Ultrasound Machine (Imaging)</option>
+                            <option value="Patient Monitor">Patient Monitor (Multiparameter)</option>
+                            <option value="Syringe Infusion Pump">Syringe Infusion Pump (Drug Delivery)</option>
+                        </select>
+                    </div>
+                    <div class="input-field-wrapper" style="justify-content: flex-end;">
+                        <button class="btn btn-primary" id="btn-diag-analyze" style="width: 100%; justify-content: center; height: 46px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Analyze Equipment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty / Welcome state -->
+            <div class="glass-panel dashboard-card" id="diag-empty-state" style="padding: 60px 40px; text-align: center;">
+                <div class="empty-state">
+                    <div class="empty-state-icon" style="font-size: 4rem; margin-bottom: 20px;">🔍</div>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.6rem; color: #fff; margin-bottom: 12px;">Predictive Maintenance Diagnostic Lab</h3>
+                    <p style="margin-top: 10px; max-width: 580px; margin-left: auto; margin-right: auto; line-height: 1.6; color: var(--text-secondary);">
+                        Search or select medical equipment to retrieve working principles, sensor tracking maps, component diagrams, common failure modes, interactive service checklists, and predictive action plans.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Results Dashboard (hidden initially) -->
+            <div id="diag-results-container" style="display: none; flex-direction: column; gap: 24px;">
+                <!-- Status Row -->
+                <div class="grid-3">
+                    <!-- Health Indicator Card -->
+                    <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="card-title">
+                            <span>Equipment Health Index</span>
+                            <span class="status-badge normal" id="diag-live-tag" style="display: none; font-size: 0.65rem;">LIVE FLEET</span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0;">
+                            <div class="card-value" id="diag-health-val" style="margin-bottom: 0;">100%</div>
+                            <span class="status-badge normal" id="diag-status-badge" style="font-size: 0.85rem; padding: 6px 12px;">Healthy</span>
+                        </div>
+                        <div class="card-subtext" id="diag-health-subtext">Estimated equipment health index</div>
+                    </div>
+
+                    <!-- Maintenance Priority Card -->
+                    <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="card-title">Maintenance Priority</div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0;">
+                            <div class="card-value" id="diag-priority-val" style="margin-bottom: 0; font-size: 1.8rem; color: var(--color-normal);">Low Priority</div>
+                            <span class="status-badge normal" id="diag-priority-badge" style="background: rgba(0,227,150,0.1); color: var(--color-normal); border-color: rgba(0,227,150,0.2);">LOW</span>
+                        </div>
+                        <div class="card-subtext" id="diag-priority-subtext">Based on current sensor degradation and usage</div>
+                    </div>
+
+                    <!-- Diagnostic Summary Card -->
+                    <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div class="card-title">Diagnostic Summary</div>
+                        <div class="summary-details" style="display: flex; flex-direction: column; gap: 8px; margin: 10px 0;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                <span style="color: var(--text-secondary);">Components:</span>
+                                <span id="diag-comp-summary" style="font-weight: 600; color: #fff;">7 Present / 5 Absent</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                <span style="color: var(--text-secondary);">Sensors Monitored:</span>
+                                <span id="diag-sensor-summary" style="font-weight: 600; color: #fff;">4 Active Sensors</span>
+                            </div>
+                            <div id="diag-live-rul-row" style="display: none; justify-content: space-between; font-size: 0.85rem;">
+                                <span style="color: var(--text-secondary);">Est. RUL (Remaining Life):</span>
+                                <span id="diag-live-rul-val" style="font-weight: 600; color: var(--color-cyan);">8.2 months</span>
+                            </div>
+                        </div>
+                        <div class="card-subtext">Hardware layout & monitoring mapping</div>
+                    </div>
+                </div>
+
+                <!-- Main grid details -->
+                <div class="grid-2">
+                    <!-- Left: Core System Details -->
+                    <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; gap: 24px;">
+                        <div>
+                            <h3 class="panel-heading" style="font-family: var(--font-heading); font-size: 1.15rem; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                ⚙️ Working Principle
+                            </h3>
+                            <p class="card-subtext" id="diag-working-principle" style="line-height: 1.6; font-size: 0.88rem; color: var(--text-secondary);">
+                                Equipment details working principle.
+                            </p>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <h3 class="panel-heading" style="font-family: var(--font-heading); font-size: 1.15rem; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                                🧩 Component Mapping (Available vs. Absent)
+                            </h3>
+                            <div class="component-comparison-grid">
+                                <div class="component-column present">
+                                    <div class="column-title" style="font-size: 0.8rem; font-weight: 600; color: var(--color-normal); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Available Components</div>
+                                    <ul id="diag-components-present" style="list-style: none; display: flex; flex-direction: column; gap: 8px;">
+                                        <!-- Present components will be populated dynamically -->
+                                    </ul>
+                                </div>
+                                <div class="component-column absent">
+                                    <div class="column-title" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Not Present (Absent)</div>
+                                    <ul id="diag-components-absent" style="list-style: none; display: flex; flex-direction: column; gap: 8px;">
+                                        <!-- Absent components will be populated dynamically -->
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <h3 class="panel-heading" style="font-family: var(--font-heading); font-size: 1.15rem; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                📟 Telemetry Sensors Integrated
+                            </h3>
+                            <div class="sensors-list-grid" id="diag-sensors-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                                <!-- Sensors will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Maintenance & Faults -->
+                    <div class="glass-panel dashboard-card" style="display: flex; flex-direction: column; gap: 24px;">
+                        <div>
+                            <h3 class="panel-heading" style="font-family: var(--font-heading); font-size: 1.15rem; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                ⚠️ Failure Analysis & Common Faults
+                            </h3>
+                            <div class="fault-analysis-container" id="diag-faults-list" style="display: flex; flex-direction: column; gap: 14px;">
+                                <!-- Faults and reasons for failure -->
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <h3 class="panel-heading" style="font-family: var(--font-heading); font-size: 1.15rem; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                📋 Interactive Maintenance Checklist
+                            </h3>
+                            <div class="checklist-container">
+                                <ul class="diagnostic-checklist" id="diag-checklist" style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                                    <!-- Dynamic Checklist items -->
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <h3 class="panel-heading" style="font-family: var(--font-heading); font-size: 1.15rem; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                📅 Action Plan & Scheduling
+                            </h3>
+                            <div class="maintenance-schedule-container" style="display: flex; flex-direction: column; gap: 12px; font-size: 0.88rem;">
+                                <div class="schedule-item" style="padding: 10px; background: rgba(255,255,255,0.01); border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <div style="font-weight: 600; color: var(--color-cyan); margin-bottom: 4px;">Preventive Maintenance Schedule:</div>
+                                    <span id="diag-schedule-preventive" style="color: var(--text-secondary);">Daily checks.</span>
+                                </div>
+                                <div class="schedule-item" style="padding: 10px; background: rgba(255,255,255,0.01); border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <div style="font-weight: 600; color: var(--color-warning); margin-bottom: 4px;">Predictive Recommendations:</div>
+                                    <span id="diag-recommendation-predictive" style="color: var(--text-secondary);">Monitor vibration telemetry.</span>
+                                </div>
+                                <div class="schedule-item action-plan" style="padding: 12px; background: rgba(0, 242, 254, 0.04); border-radius: 8px; border: 1px solid rgba(0, 242, 254, 0.15);">
+                                    <div style="font-weight: 600; color: var(--color-cyan); margin-bottom: 4px;">Recommended Technical Action:</div>
+                                    <span id="diag-action-recommended" style="color: #fff; font-weight: 500;">Run internal safety calibrations.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- CORE SCRIPTS -->
+    <script src="simulator.js"></script>
+    <script src="ml-engine.js"></script>
+    <script src="chart-manager.js"></script>
+    <script src="app.js"></script>
+    <script src="diagnostics-engine.js"></script>
+</body>
+</html>
